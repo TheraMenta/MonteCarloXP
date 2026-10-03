@@ -26,24 +26,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function generateShares(N) {
-    const alpha = 0.5;
+    const alpha  = 0.5;
     const gammas = Array.from({ length: N }, () => sampleGamma(alpha));
-    const total = gammas.reduce((a, b) => a + b, 0);
+    const total  = gammas.reduce((a, b) => a + b, 0);
     return gammas.map(g => g / total);
   }
 
+  function sharesToPercent(shares, decimals = 2) {
+    const factor  = 10 ** decimals;
+    const total   = 100 * factor;
+    const exact   = shares.map(s => s * 100 * factor);
+    const floored = exact.map(v => Math.floor(v));
+    let remainder = total - floored.reduce((a, b) => a + b, 0);
+    const indices = exact
+      .map((v, i) => ({ i, frac: v - floored[i] }))
+      .sort((a, b) => b.frac - a.frac)
+      .map(o => o.i);
+    for (let j = 0; j < remainder; j++) floored[indices[j]] += 1;
+    return floored.map(v => (v / factor).toFixed(decimals));
+  }
+
   function sampleGamma(alpha) {
-    if (alpha < 1) {
-      return sampleGamma(alpha + 1) * Math.random() ** (1 / alpha);
-    }
+    if (alpha < 1) return sampleGamma(alpha + 1) * Math.random() ** (1 / alpha);
     const d = alpha - 1 / 3;
     const c = 1 / Math.sqrt(9 * d);
     while (true) {
       let x, v;
-      do {
-        x = sampleNormal();
-        v = 1 + c * x;
-      } while (v <= 0);
+      do { x = sampleNormal(); v = 1 + c * x; } while (v <= 0);
       v = v ** 3;
       const u = Math.random();
       if (u < 1 - 0.0331 * x ** 4) return d * v;
@@ -57,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   }
 
-  window.MCX = { calcIHH, calcCRk, calcIEnorm, calcID, generateShares };
+  window.MCX = { calcIHH, calcCRk, calcIEnorm, calcID, generateShares, sharesToPercent };
 
   // ===========================
   // AUDIO
@@ -83,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
     playSound(sndStartup);
     loginScreen.classList.add("hidden");
     desktop.classList.add("visible");
-    setTimeout(resizeCanvas, 100);
+    setTimeout(() => { resizeCanvas(); resizeSharesCanvas(); }, 100);
   });
 
   // ===========================
@@ -93,25 +102,21 @@ document.addEventListener("DOMContentLoaded", () => {
   function showModal({ title, body, btnLabel = "Aceptar", onClose } = {}) {
     const overlay = document.createElement("div");
     overlay.style.cssText = `
-      position:fixed;inset:0;z-index:200;
-      background:rgba(0,0,0,0.35);
-      display:flex;align-items:center;justify-content:center;
-    `;
+      position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.35);
+      display:flex;align-items:center;justify-content:center;`;
     const win = document.createElement("div");
     win.style.cssText = `
-      width:380px;background:#ece9d8;
-      border:2px solid #003c74;border-radius:8px 8px 0 0;
+      width:400px;background:#ece9d8;border:2px solid #003c74;
+      border-radius:8px 8px 0 0;overflow:hidden;
+      font-family:Tahoma,Arial,sans-serif;font-size:11px;
       box-shadow:2px 2px 0 #7ab4e8 inset,-1px -1px 0 #003c74 inset,
-                 4px 6px 18px rgba(0,0,0,0.55);
-      overflow:hidden;font-family:Tahoma,Arial,sans-serif;font-size:11px;
-    `;
+                 4px 6px 18px rgba(0,0,0,0.55);`;
     const bar = document.createElement("div");
     bar.style.cssText = `
       background:linear-gradient(to right,
         #0a246a 0%,#3a6ecc 35%,#4a8ee8 50%,#3a6ecc 65%,#0a246a 100%);
       padding:5px 8px;display:flex;align-items:center;
-      justify-content:space-between;user-select:none;
-    `;
+      justify-content:space-between;user-select:none;`;
     const barText = document.createElement("span");
     barText.textContent = title;
     barText.style.cssText =
@@ -123,30 +128,23 @@ document.addEventListener("DOMContentLoaded", () => {
       width:21px;height:21px;font-size:10px;font-weight:bold;
       border-radius:3px;border:1px solid #6a1010;cursor:pointer;color:#fff;
       background:linear-gradient(to bottom,#e05050 0%,#c03030 45%,#901010 100%);
-      display:flex;align-items:center;justify-content:center;
-    `;
+      display:flex;align-items:center;justify-content:center;`;
     bar.appendChild(barText);
     bar.appendChild(barClose);
-
     const bodyEl = document.createElement("div");
     bodyEl.style.cssText = `padding:14px 16px 10px;line-height:1.6;`;
     bodyEl.innerHTML = body;
-
     const btnRow = document.createElement("div");
     btnRow.style.cssText =
       `padding:8px 16px 14px;display:flex;justify-content:flex-end;`;
     const btn = document.createElement("button");
     btn.textContent = btnLabel;
     btn.className = "xp-btn";
-
     const close = () => { overlay.remove(); if (onClose) onClose(); };
     btn.addEventListener("click", close);
     barClose.addEventListener("click", close);
-
     btnRow.appendChild(btn);
-    win.appendChild(bar);
-    win.appendChild(bodyEl);
-    win.appendChild(btnRow);
+    win.appendChild(bar); win.appendChild(bodyEl); win.appendChild(btnRow);
     overlay.appendChild(win);
     document.body.appendChild(overlay);
   }
@@ -170,17 +168,36 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===========================
-  // REFERENCIAS DOM — CONFIGURACIÓN
+  // REFERENCIAS DOM
   // ===========================
 
   const inputN          = document.getElementById("input-n");
   const inputIter       = document.getElementById("input-iter");
+  const inputK          = document.getElementById("input-k");
+  const cellK           = document.getElementById("cell-k");
   const selectIndicator = document.getElementById("select-indicator");
   const btnGenerar      = document.getElementById("btn-generar");
   const previewEl       = document.getElementById("preview-puntual");
   const configErrorEl   = document.getElementById("config-error");
   const iterWarningEl   = document.getElementById("iter-warning");
   const btnSimular      = document.getElementById("btn-simular");
+  const casoStatsLine   = document.getElementById("caso-stats-line");
+  const sharesStatsLine = document.getElementById("shares-stats-line");
+
+  // ===========================
+  // CONTROL k
+  // ===========================
+
+  function getK() { return parseInt(inputK.value, 10) || 4; }
+
+  selectIndicator.addEventListener("change", () => {
+    cellK.style.display = selectIndicator.value === "CR" ? "flex" : "none";
+  });
+
+  inputN.addEventListener("change", () => {
+    const N = parseInt(inputN.value, 10);
+    if (!isNaN(N) && N >= 2 && N <= 100) buildCasoFields(N);
+  });
 
   // ===========================
   // ADVERTENCIA DE ITERACIONES
@@ -195,26 +212,21 @@ document.addEventListener("DOMContentLoaded", () => {
       playSound(sndError);
       showModal({
         title: "Advertencia de rendimiento",
-        body: `
-          <p style="margin-bottom:10px;">
+        body: `<p style="margin-bottom:10px;">
             Ha configurado <strong>${value.toLocaleString()}</strong> iteraciones.
-            Tenga en cuenta lo siguiente:
-          </p>
+            Tenga en cuenta lo siguiente:</p>
           <ul style="padding-left:18px;line-height:2;">
-            <li><strong>Impacto en rendimiento:</strong> volúmenes elevados
-                pueden degradar la fluidez de la interfaz durante la simulación.</li>
+            <li><strong>Impacto en rendimiento:</strong> volúmenes elevados pueden
+                degradar la fluidez de la interfaz.</li>
             <li><strong>Latencia de respuesta:</strong> el tiempo hasta obtener
-                resultados aumenta proporcionalmente al número de iteraciones.</li>
-            <li><strong>Consumo de recursos de cómputo:</strong> la carga sobre
-                el hilo principal del navegador será significativamente mayor,
-                pudiendo afectar otras pestañas o procesos activos.</li>
+                resultados aumenta proporcionalmente.</li>
+            <li><strong>Consumo de recursos de cómputo:</strong> la carga sobre el
+                hilo principal del navegador será significativamente mayor.</li>
           </ul>`,
         btnLabel: "Comprendo",
       });
     }
-    if (value <= 1000) {
-      iterWarningEl.style.display = "none";
-    }
+    if (value <= 1000) iterWarningEl.style.display = "none";
   }
 
   inputIter.addEventListener("change", () => {
@@ -223,73 +235,94 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ===========================
-  // GENERAR CASO PUNTUAL
+  // INDICADOR
   // ===========================
 
-  btnGenerar.addEventListener("click", () => {
-    clearError(configErrorEl);
-    const N = parseInt(inputN.value, 10);
-    if (isNaN(N) || N < 2 || N > 100) {
-      showError(configErrorEl,
-        "El número de empresas debe ser un entero entre 2 y 100.");
-      return;
+  function getIndicatorValue(shares, indicator) {
+    switch (indicator) {
+      case "IHH": return MCX.calcIHH(shares);
+      case "CR":  return MCX.calcCRk(shares, getK());
+      case "IE":  return MCX.calcIEnorm(shares);
+      case "ID":  return MCX.calcID(shares);
     }
-    MCX.currentShares = MCX.generateShares(N);
-    const sorted  = [...MCX.currentShares].sort((a, b) => b - a);
-    const preview = sorted.slice(0, Math.min(3, N));
-    previewEl.innerHTML =
-      `<strong>Vector generado:</strong> ${N} empresa${N !== 1 ? "s" : ""}` +
-      ` &nbsp;|&nbsp; Top cuotas: ` +
-      preview.map((s, i) =>
-        `s<sub>${i+1}</sub> = ${(s * 100).toFixed(2)}%`).join("&emsp;");
-    previewEl.style.display = "block";
-  });
-
-  // ===========================
-  // CANVAS — dimensionado responsivo
-  // ===========================
-
-  const canvas     = document.getElementById("sim-canvas");
-  const ctx        = canvas.getContext("2d");
-  const chartTitle = document.getElementById("chart-title");
-  const statsLine  = document.getElementById("stats-line");
-  const btnHisto   = document.getElementById("btn-histo");
-  const btnDensity = document.getElementById("btn-density");
-
-  function resizeCanvas() {
-    const parent = canvas.parentElement;
-    const W = parent.clientWidth - 24;
-    canvas.width  = Math.max(W, 200);
-    canvas.height = Math.round(canvas.width * 0.45);
-    if (simResults.length) renderChart(activeMode);
   }
 
-  window.addEventListener("resize", resizeCanvas);
+  function getIndicatorLabel() {
+    const ind = selectIndicator.value;
+    return ind === "CR" ? `CR${getK()}` : ind;
+  }
+
+  const INDICATOR_META = {
+    IHH: { unit: "puntos",  decimals: 1 },
+    CR:  { unit: "%",       decimals: 2 },
+    IE:  { unit: "(0 – 1)", decimals: 4 },
+    ID:  { unit: "(0 – 1)", decimals: 4 },
+  };
+
+  function getMeta() {
+    const ind = selectIndicator.value;
+    return { label: getIndicatorLabel(), ...INDICATOR_META[ind] };
+  }
 
   // ===========================
-  // ESTADO DE SIMULACIÓN
+  // ESTADO
   // ===========================
 
   const ITER_MAX  = 10000;
   let simResults  = [];
   let punturalVal = null;
   let activeMode  = "histo";
+  let showPuntualLine = true;   // toggle de la línea verde
 
-  const INDICATOR_META = {
-    IHH: { label: "IHH", unit: "puntos",  decimals: 1 },
-    CR4: { label: "CR4", unit: "%",        decimals: 2 },
-    IE:  { label: "IE",  unit: "(0 – 1)", decimals: 4 },
-    ID:  { label: "ID",  unit: "(0 – 1)", decimals: 4 },
-  };
+  // ===========================
+  // CANVAS MC
+  // ===========================
 
-  function getIndicatorValue(shares, indicator) {
-    switch (indicator) {
-      case "IHH": return MCX.calcIHH(shares);
-      case "CR4": return MCX.calcCRk(shares, 4);
-      case "IE":  return MCX.calcIEnorm(shares);
-      case "ID":  return MCX.calcID(shares);
-    }
+  const canvas        = document.getElementById("sim-canvas");
+  const ctx           = canvas.getContext("2d");
+  const chartTitle    = document.getElementById("chart-title");
+  const statsLine     = document.getElementById("stats-line");
+  const btnHisto      = document.getElementById("btn-histo");
+  const btnDensity    = document.getElementById("btn-density");
+  const btnToggleLine = document.getElementById("btn-toggle-line");
+
+  function resizeCanvas() {
+    const W = canvas.parentElement.clientWidth - 24;
+    canvas.width  = Math.max(W, 200);
+    canvas.height = Math.round(canvas.width * 0.45);
+    if (simResults.length) renderChart(activeMode);
   }
+
+  window.addEventListener("resize", () => { resizeCanvas(); resizeSharesCanvas(); });
+
+  // ===========================
+  // GENERAR CASO PUNTUAL
+  // ===========================
+
+  function previewShares(shares, N, label) {
+    const pcts   = sharesToPercent(shares, 2);
+    const sorted = shares
+      .map((s, i) => ({ s, pct: pcts[i] }))
+      .sort((a, b) => b.s - a.s);
+    const top = sorted.slice(0, Math.min(3, N));
+    previewEl.innerHTML =
+      `<strong>${label}:</strong> ${N} empresa${N !== 1 ? "s" : ""}` +
+      ` &nbsp;|&nbsp; Top cuotas: ` +
+      top.map((o, i) => `s<sub>${i+1}</sub> = ${o.pct}%`).join("&emsp;");
+    previewEl.style.display = "block";
+  }
+
+  btnGenerar.addEventListener("click", () => {
+    clearError(configErrorEl);
+    const N = parseInt(inputN.value, 10);
+    if (isNaN(N) || N < 2 || N > 100) {
+      showError(configErrorEl, "El número de empresas debe ser un entero entre 2 y 100.");
+      return;
+    }
+    MCX.currentShares = MCX.generateShares(N);
+    previewShares(MCX.currentShares, N, "Vector generado");
+    renderSharesChart(sharesMode);
+  });
 
   // ===========================
   // SIMULACIÓN
@@ -297,38 +330,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnSimular.addEventListener("click", () => {
     clearError(configErrorEl);
-
     const N    = parseInt(inputN.value, 10);
     const iter = parseInt(inputIter.value, 10);
     const ind  = selectIndicator.value;
 
     if (isNaN(N) || N < 2 || N > 100) {
-      showError(configErrorEl,
-        "El número de empresas debe ser un entero entre 2 y 100.");
+      showError(configErrorEl, "El número de empresas debe ser un entero entre 2 y 100.");
       return;
     }
     if (isNaN(iter) || iter < 100) {
-      showError(configErrorEl,
-        "El número de iteraciones debe ser al menos 100.");
+      showError(configErrorEl, "El número de iteraciones debe ser al menos 100.");
       return;
     }
     if (iter > ITER_MAX) {
       showError(configErrorEl,
-        `El límite es ${ITER_MAX.toLocaleString()} iteraciones para evitar ` +
-        `que el navegador se bloquee al saturar su hilo principal.`);
+        `El límite es ${ITER_MAX.toLocaleString()} iteraciones. ` +
+        `Consulta la nota debajo del botón para más información.`);
       return;
+    }
+    if (ind === "CR") {
+      const k = getK();
+      if (isNaN(k) || k < 1 || k > 100) {
+        showError(configErrorEl, "k debe estar entre 1 y 100."); return;
+      }
+      if (k > N) {
+        showError(configErrorEl,
+          `k (${k}) no puede superar N (${N}). ` +
+          `Con k > N el CR${k} equivale al CR${N} y no aporta información adicional.`);
+        return;
+      }
     }
 
     if (!MCX.currentShares || MCX.currentShares.length !== N) {
       MCX.currentShares = MCX.generateShares(N);
-      const sorted  = [...MCX.currentShares].sort((a, b) => b - a);
-      const preview = sorted.slice(0, Math.min(3, N));
-      previewEl.innerHTML =
-        `<strong>Vector generado automáticamente:</strong> ${N} empresas` +
-        ` &nbsp;|&nbsp; Top cuotas: ` +
-        preview.map((s, i) =>
-          `s<sub>${i+1}</sub> = ${(s * 100).toFixed(2)}%`).join("&emsp;");
-      previewEl.style.display = "block";
+      previewShares(MCX.currentShares, N, "Vector generado automáticamente");
+      renderSharesChart(sharesMode);
     }
 
     simResults = [];
@@ -339,16 +375,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     resizeCanvas();
     renderChart(activeMode);
-    updateStats(ind);
+    updateStats();
+    updateSharesStats();
   });
 
   // ===========================
-  // ESTADÍSTICAS
+  // ESTADÍSTICAS MC
   // ===========================
 
-  function mean(arr) {
-    return arr.reduce((a, b) => a + b, 0) / arr.length;
-  }
+  function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 
   function percentile(sortedArr, val) {
     let count = 0;
@@ -356,25 +391,87 @@ document.addEventListener("DOMContentLoaded", () => {
     return (count / sortedArr.length * 100).toFixed(1);
   }
 
-  function updateStats(ind) {
-    const meta   = INDICATOR_META[ind];
+  function updateStats() {
+    if (!simResults.length) return;
+    const meta   = getMeta();
     const sorted = [...simResults].sort((a, b) => a - b);
     const mu     = mean(simResults);
+    const sd     = Math.sqrt(simResults.reduce((a, v) => a + (v - mu) ** 2, 0) / simResults.length);
     const pct    = percentile(sorted, punturalVal);
+
+    // Línea 1: estadísticas de la distribución simulada
     statsLine.innerHTML =
+      `<strong>Distribución simulada —</strong> ` +
       `Media: <strong>${mu.toFixed(meta.decimals)} ${meta.unit}</strong>` +
-      `&emsp;|&emsp;Caso particular: ` +
-      `<strong style="color:#c0392b">` +
+      `&emsp;|&emsp;` +
+      `Desv. estándar: <strong>${sd.toFixed(meta.decimals)} ${meta.unit}</strong>` +
+      `&emsp;|&emsp;` +
+      `Min: <strong>${Math.min(...simResults).toFixed(meta.decimals)}</strong>` +
+      `&emsp;` +
+      `Max: <strong>${Math.max(...simResults).toFixed(meta.decimals)}</strong>`;
+
+    // Línea 2: datos del caso particular
+    casoStatsLine.style.display = "block";
+    casoStatsLine.innerHTML =
+      `<strong>Caso particular —</strong> ` +
+      `${meta.label}: <strong style="color:#1a7a1a">` +
       `${punturalVal.toFixed(meta.decimals)} ${meta.unit}</strong>` +
-      `&emsp;|&emsp;Percentil: ` +
-      `<strong style="color:#c0392b">${pct}</strong>`;
+      `&emsp;|&emsp;` +
+      `Percentil: <strong style="color:#1a7a1a">${pct}</strong> ` +
+      `(supera al ${pct}% de los mercados simulados)`;
   }
 
   // ===========================
-  // RENDERIZADO
+  // ESTADÍSTICAS GRÁFICO DE CUOTAS
   // ===========================
 
-  const PAD = { top: 36, right: 24, bottom: 52, left: 54 };
+  function updateSharesStats() {
+    if (!MCX.currentShares || punturalVal === null) return;
+    const meta   = getMeta();
+    const shares = MCX.currentShares;
+    const pcts   = sharesToPercent(shares, 2);
+    const N      = shares.length;
+
+    // Percentil dentro de MC (solo si hay simulación)
+    let pctStr = "—";
+    if (simResults.length) {
+      const sorted = [...simResults].sort((a, b) => a - b);
+      pctStr = percentile(sorted, punturalVal);
+    }
+
+    // Cuotas ordenadas de mayor a menor
+    const sorted = shares
+      .map((s, i) => ({ s, pct: pcts[i] }))
+      .sort((a, b) => b.s - a.s);
+    const cuotasStr = sorted
+      .map((o, i) => `s<sub>${i+1}</sub>=${o.pct}%`)
+      .join(" &nbsp; ");
+
+    sharesStatsLine.style.display = "block";
+    sharesStatsLine.innerHTML =
+      `<strong>${meta.label} del caso:</strong> ` +
+      `<strong style="color:#1a7a1a">${punturalVal.toFixed(meta.decimals)} ${meta.unit}</strong>` +
+      `&emsp;|&emsp;Percentil MC: <strong style="color:#1a7a1a">${pctStr}</strong>` +
+      `<br><strong>Cuotas (desc.):</strong> ${cuotasStr}`;
+  }
+
+  // ===========================
+  // TOGGLE LÍNEA VERDE
+  // ===========================
+
+  btnToggleLine.addEventListener("click", () => {
+    showPuntualLine = !showPuntualLine;
+    btnToggleLine.textContent = showPuntualLine
+      ? "Ocultar línea del caso"
+      : "Mostrar línea del caso";
+    if (simResults.length) renderChart(activeMode);
+  });
+
+  // ===========================
+  // RENDERIZADO MC
+  // ===========================
+
+  const PAD = { top: 36, right: 24, bottom: 52, left: 58 };
 
   function renderChart(mode) {
     activeMode = mode;
@@ -383,43 +480,35 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.clearRect(0, 0, W, H);
     if (!simResults.length) return;
 
-    const ind  = selectIndicator.value;
-    const meta = INDICATOR_META[ind];
+    const meta = getMeta();
     chartTitle.textContent =
       `${meta.label} — ${simResults.length.toLocaleString()} iteraciones`;
 
     const pw = W - PAD.left - PAD.right;
     const ph = H - PAD.top  - PAD.bottom;
-
     const minVal = Math.min(...simResults);
     const maxVal = Math.max(...simResults);
     const range  = maxVal - minVal || 1;
 
     let maxFreq;
-    if (mode === "histo") {
-      maxFreq = drawHistogram(pw, ph, minVal, range);
-    } else {
-      maxFreq = drawDensity(pw, ph, minVal, range);
-    }
+    if (mode === "histo") maxFreq = drawHistogram(ctx, pw, ph, minVal, range);
+    else                  maxFreq = drawDensity(ctx, pw, ph, minVal, range);
 
-    drawAxesLabels(W, H, pw, ph, minVal, maxVal, maxFreq, meta);
-    drawPuntualLine(W, H, pw, ph, minVal, range, meta);
+    drawAxesLabels(ctx, W, H, pw, ph, minVal, maxVal, maxFreq, meta, mode);
+    if (showPuntualLine) drawPuntualLine(ctx, W, H, pw, ph, minVal, range, meta);
   }
 
-  function drawHistogram(pw, ph, minVal, range) {
+  function drawHistogram(ctx, pw, ph, minVal, range) {
     const bins   = Math.ceil(Math.sqrt(simResults.length));
     const counts = new Array(bins).fill(0);
     const step   = range / bins;
-
     for (const v of simResults) {
       let b = Math.floor((v - minVal) / step);
       if (b >= bins) b = bins - 1;
       counts[b]++;
     }
-
     const maxCount = Math.max(...counts);
     const barW = pw / bins;
-
     ctx.save();
     for (let b = 0; b < bins; b++) {
       const bh = (counts[b] / maxCount) * ph;
@@ -445,16 +534,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return maxCount;
   }
 
-  function drawDensity(pw, ph, minVal, range) {
+  function drawDensity(ctx, pw, ph, minVal, range) {
     const n  = simResults.length;
     const mu = mean(simResults);
-    const sd = Math.sqrt(
-      simResults.reduce((a, v) => a + (v - mu) ** 2, 0) / n
-    );
-    const h   = 1.06 * sd * Math.pow(n, -0.2);
+    const sd = Math.sqrt(simResults.reduce((a, v) => a + (v - mu) ** 2, 0) / n);
+    const h  = 1.06 * sd * Math.pow(n, -0.2);
     const pts = 200;
     const ys  = [];
-
     for (let i = 0; i <= pts; i++) {
       const x = minVal + (i / pts) * range;
       let density = 0;
@@ -462,14 +548,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const u = (x - v) / h;
         density += Math.exp(-0.5 * u * u);
       }
-      density /= n * h * Math.sqrt(2 * Math.PI);
-      ys.push(density);
+      ys.push(density / (n * h * Math.sqrt(2 * Math.PI)));
     }
-
     const maxY = Math.max(...ys);
-
     ctx.save();
-    // Relleno
     ctx.beginPath();
     for (let i = 0; i <= pts; i++) {
       const cx = PAD.left + (i / pts) * pw;
@@ -481,7 +563,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.closePath();
     ctx.fillStyle = "rgba(58,110,204,0.35)";
     ctx.fill();
-    // Línea
     ctx.beginPath();
     for (let i = 0; i <= pts; i++) {
       const cx = PAD.left + (i / pts) * pw;
@@ -495,85 +576,68 @@ document.addEventListener("DOMContentLoaded", () => {
     return null;
   }
 
-  function drawAxesLabels(W, H, pw, ph, minVal, maxVal, maxFreq, meta) {
+  function drawAxesLabels(ctx, W, H, pw, ph, minVal, maxVal, maxFreq, meta, mode) {
     ctx.save();
     ctx.strokeStyle = "#888";
     ctx.lineWidth   = 1;
-
-    // Eje X
-    ctx.beginPath();
-    ctx.moveTo(PAD.left, PAD.top + ph);
-    ctx.lineTo(PAD.left + pw, PAD.top + ph);
-    ctx.stroke();
-    // Eje Y
-    ctx.beginPath();
-    ctx.moveTo(PAD.left, PAD.top);
-    ctx.lineTo(PAD.left, PAD.top + ph);
-    ctx.stroke();
-
+    ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top + ph); ctx.lineTo(PAD.left + pw, PAD.top + ph); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top);      ctx.lineTo(PAD.left, PAD.top + ph);      ctx.stroke();
     ctx.fillStyle = "#333";
     ctx.font      = "10px Tahoma, Arial";
-
-    // Min / Max en X
     ctx.textAlign = "left";
     ctx.fillText(minVal.toFixed(meta.decimals), PAD.left, PAD.top + ph + 14);
     ctx.textAlign = "right";
     ctx.fillText(maxVal.toFixed(meta.decimals), PAD.left + pw, PAD.top + ph + 14);
-
-    // Título eje X
     ctx.textAlign = "center";
     ctx.fillText(`${meta.label} (${meta.unit})`, PAD.left + pw / 2, H - 8);
-
-    // Título eje Y
     ctx.save();
     ctx.translate(12, PAD.top + ph / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = "center";
-    ctx.fillText("Frecuencia", 0, 0);
+    ctx.fillText(mode === "histo" ? "Frecuencia" : "Densidad", 0, 0);
     ctx.restore();
-
-    // Frecuencia máxima solo en histograma
     if (maxFreq !== null) {
       ctx.textAlign = "right";
       ctx.fillText(maxFreq, PAD.left - 4, PAD.top + 4);
       ctx.fillText("0", PAD.left - 4, PAD.top + ph);
     }
-
     ctx.restore();
   }
 
-  function drawPuntualLine(W, H, pw, ph, minVal, range, meta) {
+  // Línea verde para el caso particular en el gráfico MC
+  function drawPuntualLine(ctx, W, H, pw, ph, minVal, range, meta) {
     if (punturalVal === null) return;
     const sorted = [...simResults].sort((a, b) => a - b);
     const pct    = percentile(sorted, punturalVal);
     const x      = PAD.left + ((punturalVal - minVal) / range) * pw;
 
     ctx.save();
-    ctx.strokeStyle = "#c0392b";
-    ctx.lineWidth   = 2;
-    ctx.setLineDash([5, 3]);
+    // Línea verde sólida y bien visible
+    ctx.strokeStyle = "#1a8a1a";
+    ctx.lineWidth   = 2.5;
+    ctx.setLineDash([6, 3]);
     ctx.beginPath();
     ctx.moveTo(x, PAD.top);
     ctx.lineTo(x, PAD.top + ph);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const label = `${punturalVal.toFixed(meta.decimals)} | p${pct}`;
+    // Etiqueta: valor e indicador del caso + percentil
+    const label = `${meta.label}=${punturalVal.toFixed(meta.decimals)} | p${pct}`;
     ctx.font = "bold 10px Tahoma, Arial";
     const tw = ctx.measureText(label).width;
     const lx = x + 5 + tw > PAD.left + pw ? x - tw - 7 : x + 5;
 
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.fillStyle = "rgba(240,255,240,0.90)";
     ctx.fillRect(lx - 2, PAD.top + 6, tw + 4, 14);
-    ctx.fillStyle = "#c0392b";
+    ctx.fillStyle   = "#1a6a1a";
+    ctx.strokeStyle = "#1a8a1a";
+    ctx.lineWidth   = 0.5;
+    ctx.strokeRect(lx - 2, PAD.top + 6, tw + 4, 14);
     ctx.textAlign = "left";
     ctx.fillText(label, lx, PAD.top + 17);
     ctx.restore();
   }
-
-  // ===========================
-  // BOTONES DE MODO DE VISUALIZACIÓN
-  // ===========================
 
   btnHisto.addEventListener("click", () => {
     btnHisto.classList.add("active-mode");
@@ -585,6 +649,203 @@ document.addEventListener("DOMContentLoaded", () => {
     btnDensity.classList.add("active-mode");
     btnHisto.classList.remove("active-mode");
     renderChart("density");
+  });
+
+  // ===========================
+  // CANVAS DE CUOTAS
+  // ===========================
+
+  const sharesCanvas  = document.getElementById("shares-canvas");
+  const sharesCtx     = sharesCanvas.getContext("2d");
+  const btnSharesBars = document.getElementById("btn-shares-bars");
+  const btnSharesDens = document.getElementById("btn-shares-density");
+  const sharesEmpty   = document.getElementById("shares-empty-note");
+  let sharesMode      = "bars";
+
+  const SPAD = { top: 30, right: 16, bottom: 48, left: 46 };
+
+  function resizeSharesCanvas() {
+    const W = sharesCanvas.parentElement.clientWidth - 24;
+    sharesCanvas.width  = Math.max(W, 160);
+    sharesCanvas.height = Math.round(sharesCanvas.width * 0.5);
+    if (MCX.currentShares) renderSharesChart(sharesMode);
+  }
+
+  function renderSharesChart(mode) {
+    sharesMode = mode;
+    const shares = MCX.currentShares;
+    sharesCanvas.style.display = "block";
+    sharesEmpty.style.display  = "none";
+    const W  = sharesCanvas.width;
+    const H  = sharesCanvas.height;
+    sharesCtx.clearRect(0, 0, W, H);
+    const pw = W - SPAD.left - SPAD.right;
+    const ph = H - SPAD.top  - SPAD.bottom;
+    const N  = shares.length;
+    if (mode === "bars") drawSharesBars(shares, N, pw, ph, W, H);
+    else                 drawSharesDensity(shares, pw, ph, W, H);
+  }
+
+  function drawSharesBars(shares, N, pw, ph, W, H) {
+    const sorted = [...shares].sort((a, b) => b - a);
+    const maxVal = sorted[0] * 100;
+    const barW   = pw / N;
+
+    sharesCtx.save();
+    for (let i = 0; i < N; i++) {
+      const pct = sorted[i] * 100;
+      const bh  = (pct / maxVal) * ph;
+      const x   = SPAD.left + i * barW;
+      const y   = SPAD.top  + ph - bh;
+      const r   = 2;
+      sharesCtx.fillStyle   = "rgba(58,110,204,0.70)";
+      sharesCtx.strokeStyle = "#1a4a9a";
+      sharesCtx.lineWidth   = 0.6;
+      sharesCtx.beginPath();
+      sharesCtx.moveTo(x + r, y);
+      sharesCtx.lineTo(x + barW - r, y);
+      sharesCtx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+      sharesCtx.lineTo(x + barW, y + bh);
+      sharesCtx.lineTo(x, y + bh);
+      sharesCtx.lineTo(x, y + r);
+      sharesCtx.quadraticCurveTo(x, y, x + r, y);
+      sharesCtx.closePath();
+      sharesCtx.fill();
+      sharesCtx.stroke();
+      if (barW >= 14) {
+        sharesCtx.fillStyle = "#333";
+        sharesCtx.font      = "9px Tahoma, Arial";
+        sharesCtx.textAlign = "center";
+        sharesCtx.fillText(i + 1, x + barW / 2, SPAD.top + ph + 12);
+      }
+    }
+    sharesCtx.restore();
+
+    // En modo barras: línea verde horizontal al nivel del valor del indicador
+    // no aplica (eje X es ordinal), así que mostramos solo la barra y la nota
+    drawSharesAxes(W, H, pw, ph, 0, maxVal, maxVal, "Empresa (ord. desc.)", "Cuota (%)");
+  }
+
+  function drawSharesDensity(shares, pw, ph, W, H) {
+    const pcts  = shares.map(s => s * 100);
+    const n     = pcts.length;
+    const mu    = pcts.reduce((a, b) => a + b, 0) / n;
+    const sd    = Math.sqrt(pcts.reduce((a, v) => a + (v - mu) ** 2, 0) / n) || 0.01;
+    const h     = 1.06 * sd * Math.pow(n, -0.2);
+    const minV  = Math.min(...pcts);
+    const maxV  = Math.max(...pcts);
+    const range = maxV - minV || 0.01;
+    const pts   = 200;
+    const ys    = [];
+
+    for (let i = 0; i <= pts; i++) {
+      const x = minV + (i / pts) * range;
+      let density = 0;
+      for (const v of pcts) {
+        const u = (x - v) / h;
+        density += Math.exp(-0.5 * u * u);
+      }
+      ys.push(density / (n * h * Math.sqrt(2 * Math.PI)));
+    }
+
+    const maxY = Math.max(...ys);
+
+    sharesCtx.save();
+    sharesCtx.beginPath();
+    for (let i = 0; i <= pts; i++) {
+      const cx = SPAD.left + (i / pts) * pw;
+      const cy = SPAD.top  + ph - (ys[i] / maxY) * ph;
+      i === 0 ? sharesCtx.moveTo(cx, cy) : sharesCtx.lineTo(cx, cy);
+    }
+    sharesCtx.lineTo(SPAD.left + pw, SPAD.top + ph);
+    sharesCtx.lineTo(SPAD.left,      SPAD.top + ph);
+    sharesCtx.closePath();
+    sharesCtx.fillStyle = "rgba(58,110,204,0.35)";
+    sharesCtx.fill();
+    sharesCtx.beginPath();
+    for (let i = 0; i <= pts; i++) {
+      const cx = SPAD.left + (i / pts) * pw;
+      const cy = SPAD.top  + ph - (ys[i] / maxY) * ph;
+      i === 0 ? sharesCtx.moveTo(cx, cy) : sharesCtx.lineTo(cx, cy);
+    }
+    sharesCtx.strokeStyle = "#1a4a9a";
+    sharesCtx.lineWidth   = 2;
+    sharesCtx.stroke();
+    sharesCtx.restore();
+
+    drawSharesAxes(W, H, pw, ph, minV, maxV, null, "Cuota (%)", "Densidad");
+
+    // Línea verde vertical: cuota media del caso particular sobre el eje de cuotas
+    if (punturalVal !== null && MCX.currentShares) {
+      const muCuota = (MCX.currentShares.reduce((a, b) => a + b, 0) /
+                       MCX.currentShares.length) * 100;
+      const xLine = SPAD.left + ((muCuota - minV) / range) * pw;
+
+      sharesCtx.save();
+      sharesCtx.strokeStyle = "#1a8a1a";
+      sharesCtx.lineWidth   = 2.5;
+      sharesCtx.setLineDash([6, 3]);
+      sharesCtx.beginPath();
+      sharesCtx.moveTo(xLine, SPAD.top);
+      sharesCtx.lineTo(xLine, SPAD.top + ph);
+      sharesCtx.stroke();
+      sharesCtx.setLineDash([]);
+
+      const lbl = `μ=${muCuota.toFixed(2)}%`;
+      sharesCtx.font = "bold 9px Tahoma, Arial";
+      const tw = sharesCtx.measureText(lbl).width;
+      const lx = xLine + 4 + tw > SPAD.left + pw ? xLine - tw - 5 : xLine + 4;
+
+      sharesCtx.fillStyle = "rgba(240,255,240,0.90)";
+      sharesCtx.fillRect(lx - 2, SPAD.top + 5, tw + 4, 13);
+      sharesCtx.strokeStyle = "#1a8a1a";
+      sharesCtx.lineWidth   = 0.5;
+      sharesCtx.strokeRect(lx - 2, SPAD.top + 5, tw + 4, 13);
+      sharesCtx.fillStyle = "#1a6a1a";
+      sharesCtx.textAlign = "left";
+      sharesCtx.fillText(lbl, lx, SPAD.top + 15);
+      sharesCtx.restore();
+    }
+  }
+
+  function drawSharesAxes(W, H, pw, ph, minV, maxV, maxFreq, xLabel, yLabel) {
+    sharesCtx.save();
+    sharesCtx.strokeStyle = "#888";
+    sharesCtx.lineWidth   = 1;
+    sharesCtx.beginPath(); sharesCtx.moveTo(SPAD.left, SPAD.top + ph); sharesCtx.lineTo(SPAD.left + pw, SPAD.top + ph); sharesCtx.stroke();
+    sharesCtx.beginPath(); sharesCtx.moveTo(SPAD.left, SPAD.top);      sharesCtx.lineTo(SPAD.left, SPAD.top + ph);      sharesCtx.stroke();
+    sharesCtx.fillStyle = "#333";
+    sharesCtx.font      = "9px Tahoma, Arial";
+    sharesCtx.textAlign = "left";
+    sharesCtx.fillText(minV.toFixed(1) + "%", SPAD.left, SPAD.top + ph + 12);
+    sharesCtx.textAlign = "right";
+    sharesCtx.fillText(maxV.toFixed(1) + "%", SPAD.left + pw, SPAD.top + ph + 12);
+    sharesCtx.textAlign = "center";
+    sharesCtx.fillText(xLabel, SPAD.left + pw / 2, H - 6);
+    sharesCtx.save();
+    sharesCtx.translate(11, SPAD.top + ph / 2);
+    sharesCtx.rotate(-Math.PI / 2);
+    sharesCtx.textAlign = "center";
+    sharesCtx.fillText(yLabel, 0, 0);
+    sharesCtx.restore();
+    if (maxFreq !== null) {
+      sharesCtx.textAlign = "right";
+      sharesCtx.fillText(maxFreq.toFixed(1) + "%", SPAD.left - 3, SPAD.top + 4);
+      sharesCtx.fillText("0%", SPAD.left - 3, SPAD.top + ph);
+    }
+    sharesCtx.restore();
+  }
+
+  btnSharesBars.addEventListener("click", () => {
+    btnSharesBars.classList.add("active-mode");
+    btnSharesDens.classList.remove("active-mode");
+    if (MCX.currentShares) renderSharesChart("bars");
+  });
+
+  btnSharesDens.addEventListener("click", () => {
+    btnSharesDens.classList.add("active-mode");
+    btnSharesBars.classList.remove("active-mode");
+    if (MCX.currentShares) renderSharesChart("density");
   });
 
   // ===========================
@@ -603,7 +864,6 @@ document.addEventListener("DOMContentLoaded", () => {
     clearError(casoErrorEl);
     const grid = document.createElement("div");
     grid.id = "caso-fields-grid";
-
     for (let i = 1; i <= N; i++) {
       const cell = document.createElement("div");
       cell.className = "caso-cell";
@@ -624,11 +884,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     casoFieldsWrap.appendChild(grid);
   }
-
-  inputN.addEventListener("change", () => {
-    const N = parseInt(inputN.value, 10);
-    if (!isNaN(N) && N >= 2 && N <= 100) buildCasoFields(N);
-  });
 
   buildCasoFields(parseInt(inputN.value, 10) || 10);
 
@@ -651,14 +906,14 @@ document.addEventListener("DOMContentLoaded", () => {
   btnCasoRandFill.addEventListener("click", () => {
     const N      = parseInt(inputN.value, 10);
     const shares = MCX.generateShares(N);
+    const pcts   = sharesToPercent(shares, 2);
     const inputs = casoFieldsWrap.querySelectorAll(".caso-input");
-    shares.forEach((s, i) => { inputs[i].value = (s * 100).toFixed(2); });
+    pcts.forEach((p, i) => { inputs[i].value = p; });
     clearError(casoErrorEl);
   });
 
   btnCasoCalc.addEventListener("click", () => {
     clearError(casoErrorEl);
-
     const N      = parseInt(inputN.value, 10);
     const inputs = [...casoFieldsWrap.querySelectorAll(".caso-input")];
 
@@ -668,12 +923,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (inputs.length !== N) {
-      showError(casoErrorEl,
-        "Los campos no coinciden con el N actual. Vuelve a configurar.");
+      showError(casoErrorEl, "Los campos no coinciden con el N actual. Vuelve a configurar.");
       return;
     }
-
-    // Nivel 1: rango individual
     for (let i = 0; i < inputs.length; i++) {
       const val = parseFloat(inputs[i].value);
       if (isNaN(val) || val < 0 || val > 100) {
@@ -683,14 +935,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
     }
-
-    // Nivel 2: suma = 100
     const vals = inputs.map(inp => parseFloat(inp.value));
     const sum  = vals.reduce((a, b) => a + b, 0);
     if (Math.abs(sum - 100) > 0.01) {
       showError(casoErrorEl,
-        `La suma de las cuotas es ${sum.toFixed(2)}%, pero debe ser ` +
-        `exactamente 100%. Corrige los valores antes de continuar.`);
+        `La suma de las cuotas es ${sum.toFixed(2)}%, pero debe ser exactamente 100%.`);
       return;
     }
 
@@ -699,17 +948,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const ind = selectIndicator.value;
     punturalVal = getIndicatorValue(shares, ind);
 
-    const sorted  = [...shares].sort((a, b) => b - a);
-    const preview = sorted.slice(0, Math.min(3, N));
-    previewEl.innerHTML =
-      `<strong>Caso ingresado manualmente:</strong> ${N} empresas` +
-      ` &nbsp;|&nbsp; Top cuotas: ` +
-      preview.map((s, i) =>
-        `s<sub>${i+1}</sub> = ${(s * 100).toFixed(2)}%`).join("&emsp;");
-    previewEl.style.display = "block";
-
+    previewShares(shares, N, "Caso ingresado manualmente");
+    renderSharesChart(sharesMode);
     renderChart(activeMode);
-    updateStats(ind);
+    updateStats();
+    updateSharesStats();
   });
 
   // ===========================
@@ -723,11 +966,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const UMBRALES = {
     IHH: {
       classify: v => v < 1500 ? "poco" : v < 2500 ? "moderado" : "alto",
-      fuente: "FNE Chile, Guía para el Análisis de Operaciones de " +
-              "Concentración Horizontales (mayo 2022)",
+      fuente: "FNE Chile, Guía para el Análisis de Operaciones de Concentración Horizontales (mayo 2022)",
       fmt: (v, meta) => `${v.toFixed(meta.decimals)} ${meta.unit}`,
     },
-    CR4: {
+    CR: {
       classify: v => v < 40 ? "poco" : v < 60 ? "moderado" : "alto",
       fuente: "Convención académica: Carlton & Perloff; Tirole",
       fmt: (v, meta) => `${v.toFixed(meta.decimals)}${meta.unit}`,
@@ -752,33 +994,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnEvalVerif.addEventListener("click", () => {
     evalFeedback.innerHTML = "";
-
     if (punturalVal === null || !simResults.length) {
       evalFeedback.innerHTML =
-        `<div class="feedback-incorrect">
-           Primero ejecuta la simulación y define un caso particular.
-         </div>`;
-      playSound(sndError);
-      return;
+        `<div class="feedback-incorrect">Primero ejecuta la simulación y define un caso particular.</div>`;
+      playSound(sndError); return;
     }
-
-    const seleccionada =
-      document.querySelector("input[name='eval-resp']:checked");
+    const seleccionada = document.querySelector("input[name='eval-resp']:checked");
     if (!seleccionada) {
       evalFeedback.innerHTML =
-        `<div class="feedback-incorrect">
-           Selecciona una opción antes de verificar.
-         </div>`;
-      playSound(sndError);
-      return;
+        `<div class="feedback-incorrect">Selecciona una opción antes de verificar.</div>`;
+      playSound(sndError); return;
     }
 
     const ind      = selectIndicator.value;
-    const meta     = INDICATOR_META[ind];
+    const meta     = getMeta();
     const umbral   = UMBRALES[ind];
     const correcto = umbral.classify(punturalVal);
     const respUser = seleccionada.value;
-
     const sortedSim = [...simResults].sort((a, b) => a - b);
     const pct       = percentile(sortedSim, punturalVal);
     const valFmt    = umbral.fmt(punturalVal, meta);
@@ -787,7 +1019,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const justificacion = `<br><br>
       <strong>Valor del caso particular:</strong> ${valFmt}<br>
       <strong>Percentil en la distribución simulada:</strong> ${pct}
-        (por encima del ${pct}% de los mercados simulados)<br>
+        (supera al ${pct}% de los mercados simulados)<br>
       <strong>Clasificación correcta:</strong> ${nivelStr}<br>
       <strong>Fuente:</strong> ${umbral.fuente}`;
 
@@ -802,13 +1034,11 @@ document.addEventListener("DOMContentLoaded", () => {
       playSound(sndError);
       evalFeedback.innerHTML =
         `<div class="feedback-incorrect">
-           <strong>Incorrecto.</strong> Seleccionaste
-           "${NIVEL_LABEL[respUser]}", pero este mercado es
-           <strong>${nivelStr}</strong> según el indicador
-           ${meta.label}.${justificacion}
+           <strong>Incorrecto.</strong> Seleccionaste "${NIVEL_LABEL[respUser]}",
+           pero este mercado es <strong>${nivelStr}</strong>
+           según el indicador ${meta.label}.${justificacion}
          </div>`;
     }
-
     document.querySelectorAll("input[name='eval-resp']")
       .forEach(r => { r.disabled = true; });
     btnEvalVerif.disabled = true;
@@ -816,8 +1046,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   btnEvalReset.addEventListener("click", () => {
     document.querySelectorAll("input[name='eval-resp']").forEach(r => {
-      r.checked  = false;
-      r.disabled = false;
+      r.checked = false; r.disabled = false;
     });
     evalFeedback.innerHTML = "";
     btnEvalVerif.disabled  = false;

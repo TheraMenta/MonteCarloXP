@@ -29,6 +29,7 @@ La aplicación corre íntegramente en el navegador: no requiere servidor, instal
 
 2. Verifica que la estructura de archivos sea la siguiente:
 
+```text
 MonteCarloXP/
 ├── index.html
 ├── style.css
@@ -41,7 +42,7 @@ MonteCarloXP/
     ├── tada.flac
     ├── ding.flac
     └── exclamation.flac
-
+```
 
 3. Abre `index.html` directamente en el navegador:
    - En Linux/macOS: `xdg-open index.html` o `open index.html`

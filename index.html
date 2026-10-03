@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonteCarloXP</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+
+  <!-- PANTALLA DE LOGIN -->
+  <div id="login-screen">
+    <div id="login-banner">
+      <div id="login-title">MonteCarloXP</div>
+      <div id="login-user">
+        <img src="assets/doggo.jpg" alt="Avatar" id="login-avatar" />
+        <div id="login-info">
+          <span id="login-name">Grupo E</span>
+          <span id="login-hint">Haz clic para iniciar sesión</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESCRITORIO -->
+  <div id="desktop">
+
+    <!-- BARRA DE TÍTULO GLOBAL -->
+    <div id="global-titlebar">
+      <div id="global-titlebar-left">
+        <span id="global-title-text">MonteCarloXP — Simulación de Concentración de Mercados</span>
+      </div>
+      <div id="global-titlebar-buttons">
+        <button class="tb-btn" id="btn-minimize">_</button>
+        <button class="tb-btn" id="btn-maximize">□</button>
+        <button class="tb-btn" id="btn-close">✕</button>
+      </div>
+    </div>
+
+    <!-- ÁREA DE DOS PANELES -->
+    <div id="panels-area">
+
+      <!-- PANEL IZQUIERDO: configuración + caso particular -->
+      <div class="panel" id="panel-left">
+
+        <!-- SECCIÓN: CONFIGURACIÓN -->
+        <section id="sec-config">
+          <h2 class="section-title">Configuración</h2>
+          <div class="section-body">
+
+            <div id="config-grid">
+
+              <div class="config-cell">
+                <label for="input-n">Número de empresas (N)</label>
+                <input type="number" id="input-n"
+                       min="2" max="100" value="10" placeholder="2 – 100" />
+              </div>
+
+              <div class="config-cell">
+                <label for="input-iter">Iteraciones</label>
+                <input type="number" id="input-iter"
+                       min="1" max="10000" value="1000" />
+                <div id="iter-warning">
+                  ⚠ Valores superiores a 1.000 pueden afectar el rendimiento.
+                </div>
+              </div>
+
+              <div class="config-cell">
+                <label for="select-indicator">Indicador de concentración</label>
+                <select id="select-indicator">
+                  <option value="IHH">IHH — Índice Herfindahl-Hirschman</option>
+                  <option value="CR4">CR4 — Ratio de Concentración (k = 4)</option>
+                  <option value="IE">IE — Índice de Entropía (normalizado)</option>
+                  <option value="ID">ID — Índice de Dominancia</option>
+                </select>
+              </div>
+
+              <div class="config-cell">
+                <label>Caso puntual</label>
+                <button class="xp-btn" id="btn-generar">Generar caso puntual</button>
+                <div id="preview-puntual"></div>
+              </div>
+
+            </div>
+
+            <div id="config-error"></div>
+
+            <button id="btn-simular">Ejecutar Simulación MonteCarloXP</button>
+
+          </div>
+        </section>
+
+        <!-- SECCIÓN: CASO PARTICULAR -->
+        <section id="sec-caso">
+          <h2 class="section-title">Definición de Caso Particular</h2>
+          <div class="section-body">
+
+            <div id="caso-mode-bar">
+              <span class="viz-mode-label">Modo de ingreso</span>
+              <button class="xp-btn" id="btn-modo-manual">Manual</button>
+              <button class="xp-btn" id="btn-modo-random">Aleatorio</button>
+            </div>
+
+            <div id="caso-fields-wrap"></div>
+
+            <div id="caso-error"></div>
+
+            <div id="caso-action-row">
+              <button class="xp-btn" id="btn-caso-random-fill"
+                      style="display:none;">Rellenar aleatoriamente</button>
+              <button class="xp-btn" id="btn-caso-calcular">
+                Calcular y graficar caso particular
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /panel-left -->
+
+      <!-- PANEL DERECHO: gráfico + evaluación -->
+      <div class="panel" id="panel-right">
+
+        <!-- SECCIÓN: GRÁFICO -->
+        <section id="sec-chart">
+          <h2 class="section-title" id="chart-title">Gráfico</h2>
+          <div class="section-body">
+            <canvas id="sim-canvas"></canvas>
+            <div id="stats-line"></div>
+            <div id="viz-mode-bar">
+              <span class="viz-mode-label">Modo de visualización</span>
+              <button class="xp-btn" id="btn-histo">Histograma</button>
+              <button class="xp-btn" id="btn-density">Curva de densidad</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: EVALUACIÓN -->
+        <section id="sec-eval">
+          <h2 class="section-title">Evaluación</h2>
+          <div class="section-body">
+
+            <p id="eval-pregunta">
+              Según el caso particular definido y el indicador seleccionado,
+              ¿cuál es el nivel de concentración de este mercado?
+            </p>
+
+            <div id="eval-opciones">
+              <label class="eval-radio">
+                <input type="radio" name="eval-resp" value="poco" />
+                Mercado poco concentrado
+              </label>
+              <label class="eval-radio">
+                <input type="radio" name="eval-resp" value="moderado" />
+                Mercado moderadamente concentrado
+              </label>
+              <label class="eval-radio">
+                <input type="radio" name="eval-resp" value="alto" />
+                Mercado altamente concentrado
+              </label>
+            </div>
+
+            <div id="eval-action-row">
+              <button class="xp-btn" id="btn-eval-verificar">Verificar respuesta</button>
+              <button class="xp-btn" id="btn-eval-reset">Reiniciar</button>
+            </div>
+
+            <div id="eval-feedback"></div>
+
+            <div id="eval-umbrales">
+              <h3 class="eval-umbrales-title">Umbrales de referencia</h3>
+              <table id="eval-umbrales-table">
+                <thead>
+                  <tr>
+                    <th>Indicador</th>
+                    <th>Poco</th>
+                    <th>Moderado</th>
+                    <th>Alto</th>
+                    <th>Fuente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>IHH</td>
+                    <td>&lt; 1.500 pts</td>
+                    <td>1.500 – 2.500 pts</td>
+                    <td>&ge; 2.500 pts</td>
+                    <td>FNE Chile (2022)</td>
+                  </tr>
+                  <tr>
+                    <td>CR4</td>
+                    <td>&lt; 40%</td>
+                    <td>40% – 60%</td>
+                    <td>&ge; 60%</td>
+                    <td>Carlton &amp; Perloff; Tirole</td>
+                  </tr>
+                  <tr>
+                    <td>IE (norm.)</td>
+                    <td>&ge; 0,67</td>
+                    <td>0,33 – 0,67</td>
+                    <td>&lt; 0,33</td>
+                    <td>Shannon (1948); Theil (1967)</td>
+                  </tr>
+                  <tr>
+                    <td>ID</td>
+                    <td>&lt; 0,25</td>
+                    <td>0,25 – 0,50</td>
+                    <td>&ge; 0,50</td>
+                    <td>García Alba Idunate (1994)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /panel-right -->
+
+    </div><!-- /panels-area -->
+
+  </div><!-- /desktop -->
+
+  <!-- AUDIO -->
+  <audio id="snd-startup" src="assets/startup.flac" preload="auto"></audio>
+  <audio id="snd-error"   src="assets/error.flac"   preload="auto"></audio>
+  <audio id="snd-tada"    src="assets/tada.flac"     preload="auto"></audio>
+  <audio id="snd-ding"    src="assets/ding.flac"     preload="auto"></audio>
+  <audio id="snd-excl"    src="assets/exclamation.flac" preload="auto"></audio>
+
+</body>
+</html>

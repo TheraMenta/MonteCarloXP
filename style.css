@@ -589,3 +589,75 @@ button.xp-btn.active-mode {
   border-radius: 2px;
   line-height: 1.7;
 }
+
+/* Nota de límite de iteraciones */
+#iter-limit-note {
+  font-size: 10px;
+  color: #555;
+  line-height: 1.6;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #f0ede4;
+  border: 1px solid #c8c4b8;
+  border-radius: 2px;
+}
+
+/* Control k */
+#cell-k input {
+  width: 100%;
+}
+
+/* Canvas de cuotas */
+#shares-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border: 1px solid #a0a098;
+  margin-top: 8px;
+}
+
+#shares-viz-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+#shares-empty-note {
+  font-size: 10px;
+  color: #888;
+  margin-top: 6px;
+  display: none;
+}
+
+#sec-shares-chart .section-body {
+  min-height: 40px;
+}
+
+#caso-stats-line {
+  font-size: 11px;
+  color: #333;
+  min-height: 14px;
+  line-height: 1.6;
+  margin-top: 4px;
+  padding: 4px 6px;
+  background: #f0f8f0;
+  border: 1px solid #82b366;
+  border-radius: 2px;
+  display: none;
+}
+
+#shares-stats-line {
+  font-size: 11px;
+  color: #333;
+  min-height: 14px;
+  line-height: 1.7;
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: #f0f8f0;
+  border: 1px solid #82b366;
+  border-radius: 2px;
+  display: none;
+}

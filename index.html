@@ -10,6 +10,7 @@
 </head>
 <body>
 
+  <!-- PANTALLA DE LOGIN -->
   <div id="login-screen">
     <div id="login-banner">
       <div id="login-title">MonteCarloXP</div>
@@ -23,8 +24,30 @@
     </div>
   </div>
 
+  <!-- ESCRITORIO -->
   <div id="desktop">
 
+    <!-- ÍCONOS DEL ESCRITORIO -->
+    <div id="desktop-icons">
+      <div class="desktop-icon" data-id="mypc">
+        <img src="assets/xp-ui/MyComputer.png" alt="Mi PC" />
+        <span>Mi PC</span>
+      </div>
+      <div class="desktop-icon" data-id="mydocs">
+        <img src="assets/xp-ui/MyDocuments.png" alt="Mis documentos" />
+        <span>Mis documentos</span>
+      </div>
+      <div class="desktop-icon" data-id="mynet">
+        <img src="assets/xp-ui/MyNetworkPlaces.png" alt="Mis sitios de red" />
+        <span>Mis sitios de red</span>
+      </div>
+      <div class="desktop-icon" data-id="recyclebin">
+        <img src="assets/xp-ui/RecycleBin(empty).png" alt="Papelera de reciclaje" />
+        <span>Papelera de reciclaje</span>
+      </div>
+    </div>
+
+    <!-- BARRA DE TÍTULO GLOBAL -->
     <div id="global-titlebar">
       <div id="global-titlebar-left">
         <span id="global-title-text">MonteCarloXP — Simulación de Concentración de Mercados</span>
@@ -36,6 +59,7 @@
       </div>
     </div>
 
+    <!-- ÁREA DE DOS PANELES -->
     <div id="panels-area">
 
       <!-- PANEL IZQUIERDO -->
@@ -47,16 +71,12 @@
             <div id="config-grid">
               <div class="config-cell">
                 <label for="input-n">Número de empresas (N)</label>
-                <input type="number" id="input-n"
-                       min="2" max="100" value="10" placeholder="2 – 100" />
+                <input type="number" id="input-n" min="2" max="100" value="10" placeholder="2 – 100" />
               </div>
               <div class="config-cell">
                 <label for="input-iter">Iteraciones</label>
-                <input type="number" id="input-iter"
-                       min="1" max="10000" value="1000" />
-                <div id="iter-warning">
-                  ⚠ Valores superiores a 1.000 pueden afectar el rendimiento.
-                </div>
+                <input type="number" id="input-iter" min="1" max="10000" value="1000" />
+                <div id="iter-warning">⚠ Valores superiores a 1.000 pueden afectar el rendimiento.</div>
               </div>
               <div class="config-cell">
                 <label for="select-indicator">Indicador de concentración</label>
@@ -69,8 +89,7 @@
               </div>
               <div class="config-cell" id="cell-k" style="display:none;">
                 <label for="input-k">Número de firmas líderes (k)</label>
-                <input type="number" id="input-k"
-                       min="1" max="100" value="4" placeholder="1 – 100" />
+                <input type="number" id="input-k" min="1" max="100" value="4" placeholder="1 – 100" />
               </div>
               <div class="config-cell">
                 <label>Caso puntual</label>
@@ -81,13 +100,11 @@
             <div id="config-error"></div>
             <button id="btn-simular">Ejecutar Simulación MonteCarloXP</button>
             <p id="iter-limit-note">
-              El tope de 10.000 iteraciones existe porque la simulación corre en el
-              hilo principal del navegador de forma síncrona: volúmenes mayores
-              bloquean la interfaz, impiden la respuesta a eventos del usuario y
-              pueden provocar que el navegador muestre el diálogo "La página no
-              responde". Con 10.000 iteraciones el tiempo de cómputo típico es
-              inferior a 2 segundos en hardware moderno y la convergencia estadística
-              es suficiente para los propósitos del análisis.
+              El tope de 10.000 iteraciones existe porque la simulación corre en el hilo principal
+              del navegador de forma síncrona: volúmenes mayores bloquean la interfaz, impiden la
+              respuesta a eventos del usuario y pueden provocar que el navegador muestre el diálogo
+              "La página no responde". Con 10.000 iteraciones el tiempo de cómputo típico es inferior
+              a 2 segundos en hardware moderno y la convergencia estadística es suficiente.
             </p>
           </div>
         </section>
@@ -103,16 +120,12 @@
             <div id="caso-fields-wrap"></div>
             <div id="caso-error"></div>
             <div id="caso-action-row">
-              <button class="xp-btn" id="btn-caso-random-fill"
-                      style="display:none;">Rellenar aleatoriamente</button>
-              <button class="xp-btn" id="btn-caso-calcular">
-                Calcular y graficar caso particular
-              </button>
+              <button class="xp-btn" id="btn-caso-random-fill" style="display:none;">Rellenar aleatoriamente</button>
+              <button class="xp-btn" id="btn-caso-calcular">Calcular y graficar caso particular</button>
             </div>
           </div>
         </section>
 
-        <!-- GRÁFICO DE CUOTAS -->
         <section id="sec-shares-chart">
           <h2 class="section-title">Distribución de Cuotas del Caso Particular</h2>
           <div class="section-body">
@@ -120,12 +133,12 @@
               <span class="viz-mode-label">Vista</span>
               <button class="xp-btn" id="btn-shares-bars">Barras por empresa</button>
               <button class="xp-btn" id="btn-shares-density">Curva de cuotas</button>
+              <button class="xp-btn" id="btn-shares-expand" title="Vista ampliada">⛶ Ampliar</button>
             </div>
-            <canvas id="shares-canvas"></canvas>
-            <p id="shares-empty-note">
-              Define un caso particular para visualizar la distribución de cuotas.
-            </p>
-            <!-- Nota del caso particular -->
+            <div id="shares-canvas-wrap">
+              <canvas id="shares-canvas"></canvas>
+            </div>
+            <p id="shares-empty-note">Define un caso particular para visualizar la distribución de cuotas.</p>
             <div id="shares-stats-line"></div>
           </div>
         </section>
@@ -138,8 +151,9 @@
         <section id="sec-chart">
           <h2 class="section-title" id="chart-title">Gráfico</h2>
           <div class="section-body">
-            <canvas id="sim-canvas"></canvas>
-            <!-- Notas del gráfico MC -->
+            <div id="sim-canvas-wrap">
+              <canvas id="sim-canvas"></canvas>
+            </div>
             <div id="stats-line"></div>
             <div id="caso-stats-line"></div>
             <div id="viz-mode-bar">
@@ -147,6 +161,7 @@
               <button class="xp-btn" id="btn-histo">Histograma</button>
               <button class="xp-btn" id="btn-density">Curva de densidad</button>
               <button class="xp-btn" id="btn-toggle-line">Ocultar línea del caso</button>
+              <button class="xp-btn" id="btn-sim-expand" title="Vista ampliada">⛶ Ampliar</button>
             </div>
           </div>
         </section>
@@ -159,18 +174,9 @@
               ¿cuál es el nivel de concentración de este mercado?
             </p>
             <div id="eval-opciones">
-              <label class="eval-radio">
-                <input type="radio" name="eval-resp" value="poco" />
-                Mercado poco concentrado
-              </label>
-              <label class="eval-radio">
-                <input type="radio" name="eval-resp" value="moderado" />
-                Mercado moderadamente concentrado
-              </label>
-              <label class="eval-radio">
-                <input type="radio" name="eval-resp" value="alto" />
-                Mercado altamente concentrado
-              </label>
+              <label class="eval-radio"><input type="radio" name="eval-resp" value="poco" /> Mercado poco concentrado</label>
+              <label class="eval-radio"><input type="radio" name="eval-resp" value="moderado" /> Mercado moderadamente concentrado</label>
+              <label class="eval-radio"><input type="radio" name="eval-resp" value="alto" /> Mercado altamente concentrado</label>
             </div>
             <div id="eval-action-row">
               <button class="xp-btn" id="btn-eval-verificar">Verificar respuesta</button>
@@ -181,43 +187,13 @@
               <h3 class="eval-umbrales-title">Umbrales de referencia</h3>
               <table id="eval-umbrales-table">
                 <thead>
-                  <tr>
-                    <th>Indicador</th>
-                    <th>Poco</th>
-                    <th>Moderado</th>
-                    <th>Alto</th>
-                    <th>Fuente</th>
-                  </tr>
+                  <tr><th>Indicador</th><th>Poco</th><th>Moderado</th><th>Alto</th><th>Fuente</th></tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>IHH</td>
-                    <td>&lt; 1.500 pts</td>
-                    <td>1.500 – 2.500 pts</td>
-                    <td>&ge; 2.500 pts</td>
-                    <td>FNE Chile (2022)</td>
-                  </tr>
-                  <tr>
-                    <td>CR<sub>k</sub></td>
-                    <td>&lt; 40%</td>
-                    <td>40% – 60%</td>
-                    <td>&ge; 60%</td>
-                    <td>Carlton &amp; Perloff; Tirole</td>
-                  </tr>
-                  <tr>
-                    <td>IE (norm.)</td>
-                    <td>&ge; 0,67</td>
-                    <td>0,33 – 0,67</td>
-                    <td>&lt; 0,33</td>
-                    <td>Shannon (1948); Theil (1967)</td>
-                  </tr>
-                  <tr>
-                    <td>ID</td>
-                    <td>&lt; 0,25</td>
-                    <td>0,25 – 0,50</td>
-                    <td>&ge; 0,50</td>
-                    <td>García Alba Idunate (1994)</td>
-                  </tr>
+                  <tr><td>IHH</td><td>&lt; 1.500 pts</td><td>1.500 – 2.500 pts</td><td>&ge; 2.500 pts</td><td>FNE Chile (2022)</td></tr>
+                  <tr><td>CR<sub>k</sub></td><td>&lt; 40%</td><td>40% – 60%</td><td>&ge; 60%</td><td>Carlton &amp; Perloff; Tirole</td></tr>
+                  <tr><td>IE (norm.)</td><td>&ge; 0,67</td><td>0,33 – 0,67</td><td>&lt; 0,33</td><td>Shannon (1948); Theil (1967)</td></tr>
+                  <tr><td>ID</td><td>&lt; 0,25</td><td>0,25 – 0,50</td><td>&ge; 0,50</td><td>García Alba Idunate (1994)</td></tr>
                 </tbody>
               </table>
             </div>
@@ -225,11 +201,131 @@
         </section>
 
       </div><!-- /panel-right -->
-
     </div><!-- /panels-area -->
+
+    <!-- BARRA DE TAREAS -->
+    <div id="taskbar">
+      <button id="start-btn">
+        <img src="assets/xp-ui/StartMenuPrograms.png" alt="Start" />
+        <span>start</span>
+      </button>
+      <div id="taskbar-tasks">
+        <button class="task-btn active-task">
+          <img src="assets/xp-ui/Explorer.png" alt="MonteCarloXP" />
+          <span>MonteCarloXP</span>
+        </button>
+      </div>
+      <div id="taskbar-tray">
+        <img src="assets/xp-ui/NetworkConnection.png" alt="Red" id="tray-network" />
+        <span id="tray-clock"></span>
+      </div>
+    </div>
+
+    <!-- MENÚ INICIO -->
+    <div id="start-menu" class="hidden">
+      <div id="start-menu-header">
+        <img src="assets/doggo.jpg" alt="Avatar" id="sm-avatar" />
+        <span id="sm-username">Grupo E</span>
+      </div>
+      <div id="start-menu-body">
+        <div id="sm-left">
+          <div class="sm-item">
+            <img src="assets/xp-ui/Explorer.png" alt="" />
+            <span>MonteCarloXP</span>
+          </div>
+          <div class="sm-item">
+            <img src="assets/xp-ui/MyComputer.png" alt="" />
+            <span>Mi PC</span>
+          </div>
+          <div class="sm-item">
+            <img src="assets/xp-ui/MyDocuments.png" alt="" />
+            <span>Mis documentos</span>
+          </div>
+          <div class="sm-item">
+            <img src="assets/xp-ui/MyNetworkPlaces.png" alt="" />
+            <span>Mis sitios de red</span>
+          </div>
+          <hr class="sm-divider" />
+          <div class="sm-item">
+            <img src="assets/xp-ui/RecycleBin(empty).png" alt="" />
+            <span>Papelera de reciclaje</span>
+          </div>
+        </div>
+        <div id="sm-right">
+          <p class="sm-credits-title">Acerca de MonteCarloXP</p>
+          <p class="sm-credits-body">
+            Gracias por usar MonteCarloXP, una herramienta académica para el
+            análisis de concentración de mercados mediante simulación de
+            Monte Carlo.
+          </p>
+          <p class="sm-credits-body">
+            Desarrollado con la asistencia de
+            <strong>Claude Sonnet 4.6</strong> (Anthropic) como modelo de IA,
+            bajo la dirección de <strong>TheraMenta</strong> como prompter.
+          </p>
+          <p class="sm-credits-body">
+            Organización Industrial · Grupo E<br/>
+            Universidad Católica del Norte · 2026
+          </p>
+        </div>
+      </div>
+      <div id="start-menu-footer">
+        <button class="sm-footer-btn" id="btn-shutdown">
+          <img src="assets/xp-ui/Restart.png" alt="Apagar" />
+          <span>Apagar</span>
+        </button>
+        <button class="sm-footer-btn" id="btn-logout">
+          <img src="assets/xp-ui/Logout.png" alt="Cerrar sesión" />
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
 
   </div><!-- /desktop -->
 
+  <!-- MODAL DE APAGADO -->
+  <div id="shutdown-modal" class="hidden">
+    <div id="shutdown-dialog">
+      <div id="shutdown-titlebar">
+        <span>Apagar el sistema</span>
+        <button id="btn-shutdown-cancel-x">✕</button>
+      </div>
+      <div id="shutdown-body">
+        <img src="assets/xp-ui/Restart.png" alt="" />
+        <p>¿Deseas cerrar MonteCarloXP?</p>
+      </div>
+      <div id="shutdown-footer">
+        <button class="xp-btn" id="btn-shutdown-confirm">Aceptar</button>
+        <button class="xp-btn" id="btn-shutdown-cancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLTIP DEL HISTOGRAMA -->
+  <div id="histo-tooltip"></div>
+
+  <!-- MODAL DE VISTA AMPLIADA -->
+  <div id="expand-overlay" class="hidden">
+    <div id="expand-window">
+      <div id="expand-titlebar">
+        <span id="expand-title">Vista ampliada</span>
+        <button id="btn-expand-close">✕</button>
+      </div>
+      <div id="expand-canvas-wrap">
+        <div id="expand-canvas-scaler">
+          <canvas id="expand-canvas"></canvas>
+        </div>
+      </div>
+      <div id="expand-controls">
+        <button class="xp-btn" id="btn-zoom-in">+ Aumentar zoom</button>
+        <button class="xp-btn" id="btn-zoom-reset">Restablecer</button>
+        <button class="xp-btn" id="btn-zoom-out">− Reducir zoom</button>
+        <span id="zoom-label">1.0×</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIO -->
   <audio id="snd-startup" src="assets/startup.flac" preload="auto"></audio>
   <audio id="snd-error"   src="assets/error.flac"   preload="auto"></audio>
   <audio id="snd-tada"    src="assets/tada.flac"     preload="auto"></audio>
